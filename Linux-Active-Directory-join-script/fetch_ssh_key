@@ -1,0 +1,2 @@
+#!/bin/sh
+ldapsearch -h ad.br-ag.eu -xb "DC=ad,DC=br-ag,DC=eu" '(sAMAccountName='"${1%@*}"')' -D ananke_service@ad.br-ag.eu -w sLbGe4eJeA 'sshPublicKey' | sed -n '/^ /{H;d};/sshPublicKey:/x;$g;s/\n *//g;s/sshPublicKey: //gp'
