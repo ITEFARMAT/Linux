@@ -1,7 +1,7 @@
 !/bin/sh
 
 #$1 = User DomainAdmin Name provided while domain adding                                        #line 79
-#$2 = Provide Group from Active Directory - Group Should be created at - "OU=POZNAN_GROUPS"     #line 100
+#$2 = Provide Group from Active Directory -    #line 100
 #$3 = Provide Password for service account required to bind & fetch sshKey                      #line 105
 #Root login disabled                                                                            #line 171
 #$4 = Provide group from to AD permitted SUDO loggin without password                           #line 137
@@ -16,7 +16,7 @@ fi
 if [ "$2" != "" ]; then
     echo 
 else
-    echo "Group from ActiveDirectory missing - remember Group Should be created at - \"OU=POZNAN_GROUPS !"
+    echo "Group from ActiveDirectory missing !"
     exit
 fi
 
@@ -38,8 +38,8 @@ yum install sssd realmd oddjob ntpdate oddjob-mkhomedir adcli ntp samba-common s
 yum install wget -y || exit 2
 cp /etc/resolv.conf /etc/resolv.conf.backup || exit 3
 echo -n > /etc/resolv.conf || exit 4
-echo "search ad.br-ag.eu 
-nameserver 10.1.1.4" >> /etc/resolv.conf || exit 5
+echo "search #please provide domain name 
+nameserver #please provide domain contoller IP" >> /etc/resolv.conf || exit 5
 systemctl enable ntpd || exit 6
 cp /etc/ntp.conf /etc/ntp.conf.backup || exit 7 
 echo -n > /etc/ntp.conf || exit 8
@@ -104,21 +104,21 @@ keys /etc/ntp/keys
 # Note: Monitoring will not be disabled with the limited restriction flag.
 disable monitor" >> /etc/ntp.conf || exit 9
 
-ntpdate -u AD-DC.ad.br-ag.eu || exit 10
+ntpdate -u #provide your domain controller FULLNAME || exit 10
 systemctl enable ntpd || exit 11
 systemctl restart ntpd || exit 12
-realm join --user=$1 ad.br-ag.eu
+realm join --user=$1 #DomainName
 cp /etc/sssd/sssd.conf /etc/sssd/sssd.conf.backup || exit 13
 echo -n > /etc/sssd/sssd.conf || exit 14
 echo "[sssd] 
-domains = ad.br-ag.eu 
+domains = #domainname 
 config_file_version = 2
 services = nss, pam 
-default_domain_suffix = AD.BR-AG.EU
+default_domain_suffix = #FULLDOMAINNAME
 
-[domain/ad.br-ag.eu] 
-ad_domain = ad.br-ag.eu 
-krb5_realm = AD.BR-AG.EU 
+[domain/#domain] 
+ad_domain = domain 
+krb5_realm = #FULL DOMAIN
 realmd_tags = manages-system joined-with-samba 
 cache_credentials = True 
 id_provider = ad 
@@ -128,12 +128,12 @@ ldap_id_mapping = True
 use_fully_qualified_names = True 
 fallback_homedir = /home/%u@%d
 access_provider = ad
-ad_access_filter = memberOf=CN=$2,OU=POZNAN_GROUPS,DC=ad,DC=br-ag,DC=eu" >> /etc/sssd/sssd.conf || exit 13 # Dodajemy CN odpowiedniej grupy z AD
+ad_access_filter = memberOf=CN=$2,OU=,DC=,DC=,DC=" >> /etc/sssd/sssd.conf || exit 13 # Dodajemy CN odpowiedniej grupy z AD
 systemctl restart sssd || exit 15
 systemctl daemon-reload || exit 16
 touch /usr/local/bin/fetch_ssh_key || exit 17
 echo "#!/bin/sh" >> /usr/local/bin/fetch_ssh_key || exit 18
-echo "ldapsearch -h ad.br-ag.eu -xb \"DC=ad,DC=br-ag,DC=eu\" '(sAMAccountName='\"\${1%@*}\"')' -D ssh_reader -w $3 'sshPublicKey' | sed -n '/^ /{H;d};/sshPublicKey:/x;\$g;s/\n *//g;s/sshPublicKey: //gp'" >> /usr/local/bin/fetch_ssh_key || exit  19
+echo "ldapsearch -h #domainname -xb \"DC=,DC=,DC=\" '(sAMAccountName='\"\${1%@*}\"')' -D ssh_reader -w $3 'sshPublicKey' | sed -n '/^ /{H;d};/sshPublicKey:/x;\$g;s/\n *//g;s/sshPublicKey: //gp'" >> /usr/local/bin/fetch_ssh_key || exit  19
 chmod 500 /usr/local/bin/fetch_ssh_key || exit 20
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup || exit 21
 echo -n > /etc/ssh/sshd_config || exit 22
